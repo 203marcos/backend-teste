@@ -12,6 +12,17 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
+from drf_spectacular.utils import extend_schema, OpenApiResponse
+
+@extend_schema(
+    tags=['Autenticação'],
+    request={'application/json': {'type': 'object', 'properties': {'refresh': {'type': 'string'}}}},
+    responses={
+        205: OpenApiResponse(description='Logout realizado — refresh token revogado'),
+        400: OpenApiResponse(description='Token ausente ou já revogado'),
+        401: OpenApiResponse(description='Access token ausente ou inválido'),
+    },
+)
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -34,6 +45,14 @@ class LogoutView(APIView):
 
         return Response(status=status.HTTP_205_RESET_CONTENT)
 
+@extend_schema(
+    tags=['Autenticação'],
+    request=RegisterSerializer,
+    responses={
+        201: OpenApiResponse(description='Usuário criado com sucesso'),
+        400: OpenApiResponse(description='Erro de validação (e-mail/username duplicado, senha fraca, etc.)'),
+    },
+)
 class RegisterView(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
@@ -58,6 +77,14 @@ class RegisterView(APIView):
             status=status.HTTP_201_CREATED,
         )
 
+@extend_schema(
+    tags=['Autenticação'],
+    request=LoginSerializer,
+    responses={
+        200: OpenApiResponse(description='Login bem-sucedido — retorna access e refresh tokens'),
+        401: OpenApiResponse(description='Credenciais inválidas'),
+    },
+)
 class LoginView(APIView):
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
