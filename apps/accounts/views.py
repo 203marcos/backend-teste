@@ -6,8 +6,11 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import RegisterSerializer, LoginSerializer
 from .services import register_user, login_user
 
+from rest_framework.parsers import MultiPartParser, FormParser
 
 class RegisterView(APIView):
+    parser_classes = [MultiPartParser, FormParser]
+
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         if not serializer.is_valid():

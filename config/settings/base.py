@@ -11,22 +11,25 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import environ
+
+env = environ.Env()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
+environ.Env.read_env(BASE_DIR / '.env')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-!6j!-jr6_7pf&v-w62xu54n(komrjrpf*hbe%_klu3@*e$i_v6'
+SECRET_KEY = env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env.bool('DEBUG', default=False)
 
 ALLOWED_HOSTS = []
-
 
 # Application definition
 
@@ -77,15 +80,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'twist_db',
-        'USER': 'twist_user',
-        'PASSWORD': 'twist_password',
-        'HOST': 'localhost',
-        'PORT': '5434',  # Porta mapeada no seu docker-compose!
-    }
+    'default': env.db('DATABASE_URL')
 }
+
+SUPABASE_URL = env('SUPABASE_URL')
+SUPABASE_SERVICE_KEY = env('SUPABASE_SERVICE_KEY')
 
 
 # Password validation
@@ -136,3 +135,4 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
 }
+
