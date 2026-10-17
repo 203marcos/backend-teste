@@ -3,6 +3,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.utils import timezone
 
+from apps.accounts.models import Follow
+
 User = get_user_model()
 
 def validate_avatar_file(file):
@@ -60,3 +62,27 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
         if value and value > timezone.now().date():
             raise serializers.ValidationError("A data de nascimento não pode ser no futuro.")
         return value
+
+class FollowerSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='follower.id')
+    username = serializers.CharField(source='follower.username')
+    first_name = serializers.CharField(source='follower.first_name')
+    last_name = serializers.CharField(source='follower.last_name')
+    avatar_url = serializers.CharField(source='follower.avatar_url')
+    followed_at = serializers.DateTimeField(source='created_at')
+
+    class Meta:
+        model = Follow
+        fields = ['id', 'username', 'first_name', 'last_name', 'avatar_url', 'followed_at']
+
+class FollowingSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='following.id')
+    username = serializers.CharField(source='following.username')
+    first_name = serializers.CharField(source='following.first_name')
+    last_name = serializers.CharField(source='following.last_name')
+    avatar_url = serializers.CharField(source='following.avatar_url')
+    followed_at = serializers.DateTimeField(source='created_at')
+
+    class Meta:
+        model = Follow
+        fields = ['id', 'username', 'first_name', 'last_name', 'avatar_url', 'followed_at']

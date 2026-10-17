@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
-from apps.accounts.views import FollowView, MeView
+from apps.accounts.views import FollowView, FollowersListView, FollowingListView, MeView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -28,4 +28,7 @@ urlpatterns = [
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+
+    path('api/users/<int:id>/followers/', FollowersListView.as_view(), name='user-followers'),
+     path('api/users/<int:id>/following/', FollowingListView.as_view(), name='user-following'),
 ]

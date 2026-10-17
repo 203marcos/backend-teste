@@ -2,8 +2,10 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework import generics
+from rest_framework.permissions import AllowAny
 
-from .serializers import RegisterSerializer, LoginSerializer, UpdateProfileSerializer, UserSerializer
+from .serializers import FollowerSerializer, FollowingSerializer, RegisterSerializer, LoginSerializer, UpdateProfileSerializer, UserSerializer
 from .services import register_user, login_user, update_profile
 
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -176,3 +178,29 @@ class FollowView(APIView):
             )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+class FollowersListView(generics.ListAPIView):
+    permission_classes = [AllowAny]
+    serializer_class = FollowerSerializer
+
+    def get_queryset(self):
+        user = get_object_or_404(User, id=self.kwargs['id'])
+        return (
+            Follow.objects
+            .filter(following=user)
+            .select_related('follower')
+            .order_by('-created_at')
+        )
+
+class FollowingListView(generics.ListAPIView):
+    permission_classes = [AllowAny]
+    serializer_class = FollowingSerializer
+
+    def get_queryset(self):
+        user = get_object_or_404(User, id=self.kwargs['id'])
+        return (
+            Follow.objects
+            .filter(follower=user)
+            .select_related('following')
+            .order_by('-created_at')
+        )
