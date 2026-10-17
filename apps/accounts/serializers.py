@@ -5,16 +5,9 @@ from django.utils import timezone
 
 from apps.accounts.models import Follow
 
+from apps.common.validators import validate_image_file
+
 User = get_user_model()
-
-def validate_avatar_file(file):
-    max_size_mb = 5
-    if file.size > max_size_mb * 1024 * 1024:
-        raise serializers.ValidationError(f"A imagem deve ter no máximo {max_size_mb}MB.")
-
-    allowed_types = ['image/jpeg', 'image/png', 'image/webp']
-    if file.content_type not in allowed_types:
-        raise serializers.ValidationError("Formato não suportado. Use JPEG, PNG ou WebP.")
     
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, validators=[validate_password])
@@ -22,7 +15,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
     last_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
     bio = serializers.CharField(required=False, allow_blank=True, allow_null=True, max_length=500)
-    avatar = serializers.ImageField(required=False, allow_null=True, write_only=True, validators=[validate_avatar_file],)
+    avatar = serializers.ImageField(required=False, allow_null=True, write_only=True, validators=[validate_image_file],)
 
     class Meta:
         model = User
@@ -51,7 +44,7 @@ class UserSerializer(serializers.ModelSerializer):
 class UpdateProfileSerializer(serializers.ModelSerializer):
     avatar = serializers.ImageField(
         required=False, allow_null=True, write_only=True,
-        validators=[validate_avatar_file],
+        validators=[validate_image_file],
     )
 
     class Meta:

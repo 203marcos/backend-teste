@@ -30,5 +30,7 @@ urlpatterns = [
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 
     path('api/users/<int:id>/followers/', FollowersListView.as_view(), name='user-followers'),
-     path('api/users/<int:id>/following/', FollowingListView.as_view(), name='user-following'),
+    path('api/users/<int:id>/following/', FollowingListView.as_view(), name='user-following'),
+
+    path('api/', include('apps.movies.urls')),
 ]
