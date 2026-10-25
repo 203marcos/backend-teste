@@ -146,3 +146,10 @@ SPECTACULAR_SETTINGS = {
     'DESCRIPTION': 'Documentação da API do Twist',
     'VERSION': '1.0.0',
 }
+
+# TMDB — aceita a API Key (v3) ou o Read Access Token (v4)
+TMDB_API_KEY = env('TMDB_API_KEY', default='')
+TMDB_BASE_URL = env('TMDB_BASE_URL', default='https://api.themoviedb.org/3')
+TMDB_LANGUAGE = env('TMDB_LANGUAGE', default='pt-BR')
+TMDB_TIMEOUT_SECONDS = env.float('TMDB_TIMEOUT_SECONDS', default=5.0)
+TMDB_CACHE_SECONDS = env.int('TMDB_CACHE_SECONDS', default=60 * 60)
