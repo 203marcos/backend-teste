@@ -6,11 +6,11 @@ from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_sche
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Playlist
+from .models import Playlist, WatchedMovie, Watchlist
 from .permissions import IsOwnerOrReadOnly
 from .serializers import PlaylistSerializer, MovieSearchQuerySerializer
 from . import tmdb
-from .services import build_movie_detail, sync_movie
+from .services import build_movie_detail, get_local_movie, get_or_sync_movie, sync_movie
 
 
 class PlaylistListCreateView(generics.ListCreateAPIView):
@@ -114,3 +114,61 @@ class MovieDetailView(APIView):
 
         movie = sync_movie(data)
         return Response(build_movie_detail(data, movie, request.user))
+
+
+class UserMovieEntryView(APIView):
+    """Base para registros únicos usuário × filme (assistido, quero assistir).
+
+    POST cria o registro (idempotente) e DELETE o remove.
+    """
+    permission_classes = [IsAuthenticated]
+    model = None
+
+    def post(self, request, tmdb_id):
+        try:
+            movie = get_or_sync_movie(tmdb_id)
+        except tmdb.TMDBError as exc:
+            return tmdb_error_response(exc)
+
+        _, created = self.model.objects.get_or_create(user=request.user, movie=movie)
+        return Response(
+            {"tmdb_id": tmdb_id, "movie_id": movie.id},
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+    def delete(self, request, tmdb_id):
+        movie = get_local_movie(tmdb_id)
+        deleted, _ = self.model.objects.filter(user=request.user, movie=movie).delete() if movie else (0, None)
+        if not deleted:
+            return Response({"error": "Registro não encontrado."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@extend_schema(
+    tags=['Filmes'],
+    request=None,
+    responses={
+        201: OpenApiResponse(description='Filme marcado como assistido'),
+        200: OpenApiResponse(description='Filme já estava marcado como assistido'),
+        204: OpenApiResponse(description='Registro de assistido removido'),
+        401: OpenApiResponse(description='Não autenticado'),
+        404: OpenApiResponse(description='Filme ou registro não encontrado'),
+    },
+)
+class WatchedMovieView(UserMovieEntryView):
+    model = WatchedMovie
+
+
+@extend_schema(
+    tags=['Filmes'],
+    request=None,
+    responses={
+        201: OpenApiResponse(description='Filme adicionado à lista "Quero assistir"'),
+        200: OpenApiResponse(description='Filme já estava na lista'),
+        204: OpenApiResponse(description='Filme removido da lista'),
+        401: OpenApiResponse(description='Não autenticado'),
+        404: OpenApiResponse(description='Filme ou registro não encontrado'),
+    },
+)
+class WatchlistView(UserMovieEntryView):
+    model = Watchlist
