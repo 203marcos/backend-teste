@@ -4,7 +4,9 @@ from .views import (
     PlaylistListCreateView,
     PlaylistDetailView,
     MovieDetailView,
+    MovieReactionView,
     MovieSearchView,
+    RatingView,
     WatchedMovieView,
     WatchlistView,
 )
@@ -18,4 +20,6 @@ urlpatterns = [
     path("movies/<int:tmdb_id>/", MovieDetailView.as_view()),
     path("movies/<int:tmdb_id>/watch/", WatchedMovieView.as_view()),
     path("movies/<int:tmdb_id>/watchlist/", WatchlistView.as_view()),
+    path("movies/<int:tmdb_id>/rating/", RatingView.as_view()),
+    path("movies/<int:tmdb_id>/reaction/", MovieReactionView.as_view()),
 ]

@@ -1,8 +1,9 @@
 from rest_framework import serializers
-
 from apps.common.storage import upload_image
 from apps.common.validators import validate_image_file
-from .models import Movie, Playlist
+
+from .models import Playlist, Movie, MovieReaction
+
 
 COVER_BUCKET = "playlist-covers"
 
@@ -50,3 +51,11 @@ class MovieSummarySerializer(serializers.ModelSerializer):
         model = Movie
         fields = ["id", "tmdb_id", "title", "original_title", "poster_path", "release_date"]
         read_only_fields = fields
+
+
+class RatingInputSerializer(serializers.Serializer):
+    stars = serializers.IntegerField(min_value=1, max_value=5)
+
+
+class ReactionInputSerializer(serializers.Serializer):
+    reaction = serializers.ChoiceField(choices=MovieReaction.ReactionChoices.choices)

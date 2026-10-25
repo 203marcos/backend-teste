@@ -6,9 +6,14 @@ from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_sche
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Playlist, WatchedMovie, Watchlist
+from .models import Playlist, MovieReaction, Rating, WatchedMovie, Watchlist
 from .permissions import IsOwnerOrReadOnly
-from .serializers import PlaylistSerializer, MovieSearchQuerySerializer
+from .serializers import (
+    PlaylistSerializer,
+    MovieSearchQuerySerializer,
+    RatingInputSerializer,
+    ReactionInputSerializer,
+)
 from . import tmdb
 from .services import build_movie_detail, get_local_movie, get_or_sync_movie, sync_movie
 
@@ -46,6 +51,14 @@ def tmdb_error_response(exc):
     if isinstance(exc, tmdb.TMDBNotFound):
         return Response({"error": str(exc)}, status=status.HTTP_404_NOT_FOUND)
     return Response({"error": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+
+def delete_user_movie_entry(model, user, tmdb_id):
+    movie = get_local_movie(tmdb_id)
+    deleted = model.objects.filter(user=user, movie=movie).delete()[0] if movie else 0
+    if not deleted:
+        return Response({"error": "Registro não encontrado."}, status=status.HTTP_404_NOT_FOUND)
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @extend_schema(
@@ -137,11 +150,7 @@ class UserMovieEntryView(APIView):
         )
 
     def delete(self, request, tmdb_id):
-        movie = get_local_movie(tmdb_id)
-        deleted, _ = self.model.objects.filter(user=request.user, movie=movie).delete() if movie else (0, None)
-        if not deleted:
-            return Response({"error": "Registro não encontrado."}, status=status.HTTP_404_NOT_FOUND)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return delete_user_movie_entry(self.model, request.user, tmdb_id)
 
 
 @extend_schema(
@@ -172,3 +181,75 @@ class WatchedMovieView(UserMovieEntryView):
 )
 class WatchlistView(UserMovieEntryView):
     model = Watchlist
+
+
+class UserMovieValueView(APIView):
+    """Base para valores únicos usuário × filme (avaliação, reação).
+
+    PUT cria ou substitui o valor e DELETE o remove.
+    """
+    permission_classes = [IsAuthenticated]
+    model = None
+    input_serializer = None
+    field = None
+
+    def put(self, request, tmdb_id):
+        serializer = self.input_serializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            movie = get_or_sync_movie(tmdb_id)
+        except tmdb.TMDBError as exc:
+            return tmdb_error_response(exc)
+
+        value = serializer.validated_data[self.field]
+        _, created = self.model.objects.update_or_create(
+            user=request.user, movie=movie, defaults={self.field: value}
+        )
+        return Response(
+            {"tmdb_id": tmdb_id, "movie_id": movie.id, self.field: value},
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+    def delete(self, request, tmdb_id):
+        return delete_user_movie_entry(self.model, request.user, tmdb_id)
+
+
+@extend_schema(
+    tags=['Filmes'],
+    request=RatingInputSerializer,
+    responses={
+        201: OpenApiResponse(description='Avaliação criada'),
+        200: OpenApiResponse(description='Avaliação alterada'),
+        204: OpenApiResponse(description='Avaliação removida'),
+        400: OpenApiResponse(description='Nota fora da escala de 1 a 5 estrelas'),
+        401: OpenApiResponse(description='Não autenticado'),
+        404: OpenApiResponse(description='Filme ou avaliação não encontrados'),
+    },
+)
+class RatingView(UserMovieValueView):
+    model = Rating
+    input_serializer = RatingInputSerializer
+    field = "stars"
+
+    def patch(self, request, tmdb_id):
+        return self.put(request, tmdb_id)
+
+
+@extend_schema(
+    tags=['Filmes'],
+    request=ReactionInputSerializer,
+    responses={
+        201: OpenApiResponse(description='Reação registrada'),
+        200: OpenApiResponse(description='Reação alterada (curtida ⇄ deslike)'),
+        204: OpenApiResponse(description='Reação removida'),
+        400: OpenApiResponse(description='Reação inválida (use LIKE ou DISLIKE)'),
+        401: OpenApiResponse(description='Não autenticado'),
+        404: OpenApiResponse(description='Filme ou reação não encontrados'),
+    },
+)
+class MovieReactionView(UserMovieValueView):
+    model = MovieReaction
+    input_serializer = ReactionInputSerializer
+    field = "reaction"
