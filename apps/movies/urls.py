@@ -10,7 +10,7 @@ from .views import (
     WatchedMovieView,
     WatchlistView,
 )
-from .review_views import MovieReviewListCreateView, ReviewDetailView
+from .review_views import MovieReviewListCreateView, ReviewDetailView, ReviewLikeView
 
 # O {tmdb_id} das rotas é o identificador do filme no TMDB; o filme local é
 # criado/sincronizado automaticamente na primeira interação.
@@ -25,4 +25,5 @@ urlpatterns = [
     path("movies/<int:tmdb_id>/reaction/", MovieReactionView.as_view()),
     path("movies/<int:tmdb_id>/reviews/", MovieReviewListCreateView.as_view()),
     path("reviews/<int:pk>/", ReviewDetailView.as_view()),
+    path("reviews/<int:review_id>/like/", ReviewLikeView.as_view()),
 ]

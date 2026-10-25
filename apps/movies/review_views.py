@@ -4,6 +4,7 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from . import tmdb
 from .models import Review, ReviewLike
@@ -110,3 +111,37 @@ class ReviewDetailView(generics.RetrieveUpdateDestroyAPIView):
         instance.is_active = False
         instance.save(update_fields=["is_active", "updated_at"])
 
+
+@extend_schema(
+    tags=['Resenhas'],
+    request=None,
+    responses={
+        201: OpenApiResponse(description='Resenha curtida'),
+        200: OpenApiResponse(description='A resenha já estava curtida'),
+        204: OpenApiResponse(description='Curtida removida'),
+        401: OpenApiResponse(description='Não autenticado'),
+        404: OpenApiResponse(description='Resenha ou curtida não encontrada'),
+    },
+)
+class ReviewLikeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def _get_review(self, review_id):
+        return Review.objects.filter(pk=review_id, is_active=True).first()
+
+    def post(self, request, review_id):
+        review = self._get_review(review_id)
+        if review is None:
+            return Response({"error": "Resenha não encontrada."}, status=status.HTTP_404_NOT_FOUND)
+
+        _, created = ReviewLike.objects.get_or_create(user=request.user, review=review)
+        return Response(
+            {"review_id": review.id, "likes_count": review.likes.count()},
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+    def delete(self, request, review_id):
+        deleted, _ = ReviewLike.objects.filter(user=request.user, review_id=review_id).delete()
+        if not deleted:
+            return Response({"error": "Curtida não encontrada."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(status=status.HTTP_204_NO_CONTENT)
