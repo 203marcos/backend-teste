@@ -1,13 +1,14 @@
 from django.shortcuts import render
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, AllowAny
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Playlist, MovieReaction, Rating, WatchedMovie, Watchlist
+from .models import Playlist, PlaylistMovie, MovieReaction, Rating, WatchedMovie, Watchlist
 from .permissions import IsOwnerOrReadOnly
+from .playlist_serializers import PlaylistDetailSerializer
 from .serializers import (
     PlaylistSerializer,
     MovieSearchQuerySerializer,
@@ -35,13 +36,18 @@ class PlaylistListCreateView(generics.ListCreateAPIView):
 
 
 class PlaylistDetailView(generics.RetrieveUpdateDestroyAPIView):
-    serializer_class = PlaylistSerializer
+    serializer_class = PlaylistDetailSerializer
     permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
     http_method_names = ['get', 'patch', 'delete', 'head', 'options']
 
     def get_queryset(self):
         user = self.request.user
-        queryset = Playlist.objects.select_related('owner')
+        queryset = Playlist.objects.select_related('owner').prefetch_related(
+            Prefetch(
+                'playlist_movies',
+                queryset=PlaylistMovie.objects.select_related('movie').order_by('position', 'added_at'),
+            )
+        )
         if user.is_authenticated:
             return queryset.filter(Q(is_public=True) | Q(owner=user))
         return queryset.filter(is_public=True)
