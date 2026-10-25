@@ -1,6 +1,16 @@
 from django.contrib import admin
 
-from .models import Movie, MovieReaction, Rating, Review, ReviewLike, WatchedMovie, Watchlist
+from .models import (
+    Movie,
+    MovieReaction,
+    Playlist,
+    PlaylistMovie,
+    Rating,
+    Review,
+    ReviewLike,
+    WatchedMovie,
+    Watchlist,
+)
 
 
 @admin.register(Movie)
@@ -48,3 +58,18 @@ class ReviewAdmin(admin.ModelAdmin):
 class ReviewLikeAdmin(admin.ModelAdmin):
     list_display = ("id", "user", "review", "created_at")
     raw_id_fields = ("user", "review")
+
+
+class PlaylistMovieInline(admin.TabularInline):
+    model = PlaylistMovie
+    raw_id_fields = ("movie",)
+    extra = 0
+
+
+@admin.register(Playlist)
+class PlaylistAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "owner", "is_public", "updated_at")
+    list_filter = ("is_public",)
+    search_fields = ("name", "owner__username")
+    raw_id_fields = ("owner",)
+    inlines = [PlaylistMovieInline]
