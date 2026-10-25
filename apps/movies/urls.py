@@ -10,6 +10,7 @@ from .views import (
     WatchedMovieView,
     WatchlistView,
 )
+from .playlist_views import PlaylistMovieAddView, PlaylistMovieRemoveView
 from .review_views import MovieReviewListCreateView, ReviewDetailView, ReviewLikeView
 
 # O {tmdb_id} das rotas é o identificador do filme no TMDB; o filme local é
@@ -17,6 +18,8 @@ from .review_views import MovieReviewListCreateView, ReviewDetailView, ReviewLik
 urlpatterns = [
     path('playlists/', PlaylistListCreateView.as_view(), name='playlist-list'),
     path('playlists/<int:pk>/', PlaylistDetailView.as_view(), name='playlist-detail'),
+    path("playlists/<int:pk>/movies/", PlaylistMovieAddView.as_view()),
+    path("playlists/<int:pk>/movies/<int:tmdb_id>/", PlaylistMovieRemoveView.as_view()),
     path("movies/search/", MovieSearchView.as_view()),
     path("movies/<int:tmdb_id>/", MovieDetailView.as_view()),
     path("movies/<int:tmdb_id>/watch/", WatchedMovieView.as_view()),
